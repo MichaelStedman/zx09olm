@@ -29,7 +29,6 @@ namespace Compiler
       int callLevel = 0;
       Stack<string> tracestack = new Stack<string>();
       OrderedDictionary labels = new OrderedDictionary();
-      int returnLabelCount = 0;
       string inputPath;
       string inputFile;
       string inputItem;
@@ -37,6 +36,7 @@ namespace Compiler
       int pass = 1;
       bool simpleVariable = false;
 
+      //=======================================================================
       public ConverterEvening()
       {
          // Conditional Operators
@@ -2172,20 +2172,6 @@ namespace Compiler
           
          */
          getsym();
-         //////if (sym == Symbol.eq)
-         //////{
-         //////   // This is the STATUS variable not a Statement
-         //////   symPointer -= 2;
-         //////   symbolList[symPointer] = Symbol.ident;
-         //////   identList[symPointer] = "ZZZ_STATUS";
-         //////   getsym();
-         //////   if (!variableNames.ContainsKey("ZZZ_STATUS"))
-         //////   {
-         //////      variableNames.Add("ZZZ_STATUS", VarUsage.Unknown);
-         //////   }
-         //////   assignment();
-         //////   return;
-         //////}
          factor();               // record var
          expect(Symbol.FROM);
          factor();               // file var
@@ -2676,12 +2662,6 @@ namespace Compiler
          getsym();
          return;
       }
-      //void commentInline()
-      //{
-      //   string comment = GetOriginalIdent();
-      //   if (comment != "") expressionStack.Push("/*" + comment + "*/");
-      //   return;
-      //}
       //=======================================================================
       void label()
       {
@@ -2751,16 +2731,6 @@ namespace Compiler
          {
             expressionStack.Push(string.Format("readUResult = {0};", expressionStack.Pop()));
             expressionStack.Push("if (readUResult==ReadUResult.Locked){");
-         }
-         else
-         {
-            //statement();
-            //while (accept(Symbol.semicolon))
-            //{
-            //   statement();
-            //   expressionStack.Push(string.Format("{1} {0}", expressionStack.Pop(), expressionStack.Pop()));
-            //}
-            //expressionStack.Push(string.Format("if (!{1}) {{ {0} }}", expressionStack.Pop(), expressionStack.Pop()));
          }
       }
       //=======================================================================
@@ -3054,11 +3024,6 @@ namespace Compiler
             {
                isIdentAnArray = IsCommonVarAnArray(GetOriginalIdent());
             }
-
-
-
-
-
             getsym();
 
             // Arrays
@@ -3114,7 +3079,7 @@ namespace Compiler
             if (accept(Symbol.openround))
             {
                simpleVariable = false;
-               function4(Symbol.AT);
+               function_others(Symbol.AT);
             }
             else
             {
@@ -3130,23 +3095,23 @@ namespace Compiler
 
             if ((int)localSym >= 1400)
             {
-               function4(localSym);
+               function_others(localSym);
             }
             else if ((int)localSym >= 1300)
             {
-               function3(localSym);
+               function_3args(localSym);
             }
             else if ((int)localSym >= 1200)
             {
-               function2(localSym);
+               function_2args(localSym);
             }
             else if ((int)localSym >= 1100)
             {
-               function1(localSym);
+               function_1arg(localSym);
             }
             else
             {
-               function0(localSym);
+               function_0args(localSym);
             }
          }
          else if (accept(Symbol.opencurly))
@@ -3296,20 +3261,20 @@ namespace Compiler
          return ident.Replace('.', '_');
       }
       //=======================================================================
-      void function0(Symbol localSym)
+      void function_0args(Symbol localSym)
       {
          expect(Symbol.closeround);
          expressionStack.Push(string.Format(localSym.ToString() + "()"));
       }
       //=======================================================================
-      void function1(Symbol localSym)
+      void function_1arg(Symbol localSym)
       {
          boolExpression();
          expect(Symbol.closeround);
          expressionStack.Push(string.Format(localSym.ToString() + "({0})", expressionStack.Pop()));
       }
       //=======================================================================
-      void function2(Symbol localSym)
+      void function_2args(Symbol localSym)
       {
          boolExpression();
          expect(Symbol.comma);
@@ -3318,7 +3283,7 @@ namespace Compiler
          expressionStack.Push(string.Format(localSym.ToString() + "({1}, {0})", expressionStack.Pop(), expressionStack.Pop()));
       }
       //=======================================================================
-      void function3(Symbol localSym)
+      void function_3args(Symbol localSym)
       {
          boolExpression();
          expect(Symbol.comma);
@@ -3329,7 +3294,7 @@ namespace Compiler
          expressionStack.Push(string.Format(localSym.ToString() + "({2}, {1}, {0})", expressionStack.Pop(), expressionStack.Pop(), expressionStack.Pop()));
       }
       //=======================================================================
-      void function4(Symbol localSym)
+      void function_others(Symbol localSym)
       {
          switch (localSym)
          {
@@ -3430,15 +3395,6 @@ namespace Compiler
                   {
                      expressionStack.Push(string.Format(localSym.ToString() + "()"));
                   }
-                  //////else
-                  //////{
-                  //////   //STATUS is being used as a variable not a function
-                  //////   if (!variableNames.ContainsKey("ZZZ_STATUS"))
-                  //////   {
-                  //////      variableNames.Add("ZZZ_STATUS", VarUsage.Assigned);
-                  //////   }
-                  //////   expressionStack.Push("ZZZ_STATUS");
-                  //////}
                   break;
                }
             case Symbol.TRIM:
@@ -3897,15 +3853,13 @@ namespace Compiler
          }
          return found;
       }
+      //=======================================================================
       private bool IsCommonVarAnArray(string varName)
       {
-         bool found = false;
          foreach (string commonName in commonVars.Keys)
          {
             if (commonVars[commonName].ContainsKey(varName))
-            //            if (commonVars[commonName].ContainsKey(RenameIdent(varName)))
             {
-               found = true;
                Dictionary<string, string> varList = commonVars[commonName];
                if (varList[varName].Contains("["))
                {
@@ -3923,18 +3877,13 @@ namespace Compiler
       //=======================================================================
       private string GetCommonVar(string varName)
       {
-         bool found = false;
          foreach (string commonName in commonVars.Keys)
          {
-            //if (commonVars[commonName].ContainsKey(RenameIdent(varName)))
             if (commonVars[commonName].ContainsKey(varName))
             {
-               found = true;
                Dictionary<string, string> varList = commonVars[commonName];
 
                return commonName + "." + RenameIdent(varName);
-
-               //return commonName + "." + varList[varList.IndexOf(RenameIdent(varName))];
             }
          }
          return "";
@@ -4288,306 +4237,6 @@ namespace Compiler
          }
       }
       //=======================================================================
-      //public void Parse_old(string text, out Symbol[] symbolList, out string[] tokenList)
-      //{
-      //   // Append Terminator Character
-      //   text += "|";
-      //   //text = Encoding.ASCII.GetString(text.ToByteArray());
-
-      //   bool firstIdent = true;
-      //   int sp = 0;
-      //   symbolList = new Symbol[100];
-      //   tokenList = new string[100];
-
-      //   int i = 0;
-      //   while (i < text.Length)
-      //   {
-      //      char letter = (char)text[i];
-      //      if (letter == '|') break;
-
-      //      // Skip over White Space
-      //      if (letter == ' ' || letter == '\t' || letter == (char)65533)
-      //      {
-      //         do
-      //         {
-      //            letter = (char)text[++i];
-      //         } while (letter == ' ' || letter == '\t' || letter == (char)65533);
-      //      }
-
-      //      // Look for Ident starting with Alpha digit
-      //      if (letter >= 'A' && letter <= 'Z' ||
-      //         letter >= 'a' && letter <= 'z')
-      //      {
-      //         int j = i;
-      //         do
-      //         {
-      //            letter = (char)text[++j];
-      //         } while (letter >= 'A' && letter <= 'Z' ||
-      //                  letter >= 'a' && letter <= 'z' ||
-      //                  letter >= '0' && letter <= '9' ||
-      //                  letter == '.' ||
-      //                  letter == '_');
-
-      //         string tokenValue = text.Substring(i, j - i);
-
-      //         //Convert Keyword to Symbol
-      //         if (keyWords.ContainsKey(tokenValue.ToUpper()))
-      //         {
-      //            symbolList[sp++] = keyWords[tokenValue.ToUpper()];
-      //         }
-      //         else
-      //         {
-      //            //tokenValue = tokenValue.Replace('.', '_');
-      //            if (!variableNames.ContainsKey(tokenValue))
-      //            {
-      //               // Only add if it isn't a label
-      //               if (!(firstIdent && text[j] == ':'))
-      //               {
-      //                  variableNames.Add(tokenValue, VarUsage.Unknown);
-      //               }
-      //            }
-      //            tokenList[sp] = tokenValue;
-      //            symbolList[sp++] = Symbol.ident;
-      //            firstIdent = false;
-      //         }
-      //         i = j;
-      //      }
-
-      //      // Look for Double Quote delimited text
-      //      if (letter == '"')
-      //      {
-      //         int j = i;
-      //         do
-      //         {
-      //            letter = (char)text[++j];
-      //         } while (letter != '"');
-      //         string tokenValue = text.Substring(++i, j - i);
-      //         tokenValue = tokenValue.Replace("\\", "\\\\");
-      //         tokenList[sp] = "\"" + tokenValue + "\"";
-      //         symbolList[sp++] = Symbol.text;
-      //         i = ++j;
-      //         letter = (char)text[i];
-      //      }
-
-      //      // Look for Single Quote delimited text
-      //      if (letter == '\'')
-      //      {
-      //         int j = i;
-      //         do
-      //         {
-      //            letter = (char)text[++j];
-      //         } while (letter != '\'' && j < (text.Length - 1));
-
-      //         string tokenValue = text.Substring(++i, j - i);
-      //         tokenValue = tokenValue.Replace("\\", "\\\\");
-      //         tokenList[sp] = "\"" + tokenValue.Replace("\"", "\\\"") + "\"";
-      //         symbolList[sp++] = Symbol.text;
-      //         i = ++j;
-      //         if (i < text.Length)
-      //         {
-      //            letter = (char)text[i];
-      //         }
-      //         else
-      //         {
-      //            break;
-      //         }
-      //      }
-
-      //      // Look for Numbers
-      //      if (letter >= '0' && letter <= '9' || letter == '.')
-      //      {
-      //         int j = i;
-      //         do
-      //         {
-      //            letter = (char)text[++j];
-      //         } while ((letter >= '0' && letter <= '9') || letter == '.');
-
-      //         string tokenValue = text.Substring(i, j - i);
-      //         // Check for decimal point and if present treat as a Decimal
-      //         if (tokenValue.Contains('.')) tokenValue += "M";
-      //         tokenList[sp] = tokenValue;
-      //         symbolList[sp++] = Symbol.number;
-      //         i = j;
-      //         letter = (char)text[i];
-      //      }
-
-      //      //Special characters
-      //      switch (letter)
-      //      {
-      //         case '<':
-      //            {
-      //               // Lookahead to see if we have a <>  (not equals) pair
-      //               if (text[i + 1] == '>')
-      //               {
-      //                  i++;
-      //                  symbolList[sp++] = Symbol.neq;
-      //               }
-      //               else
-      //                  // Lookahead to see if we have a <= (less than or equals) pair
-      //                  if (text[i + 1] == '=')
-      //                  {
-      //                     i++;
-      //                     symbolList[sp++] = Symbol.lte;
-      //                  }
-      //                  else
-      //                  {
-      //                     symbolList[sp++] = Symbol.lt;
-      //                  }
-      //               break;
-      //            }
-      //         case '>':
-      //            {
-      //               symbolList[sp++] = Symbol.gt;
-      //               break;
-      //            }
-      //         case '=':
-      //            {
-      //               symbolList[sp++] = Symbol.eq;
-      //               break;
-      //            }
-      //         case '#':
-      //            {
-      //               symbolList[sp++] = Symbol.neq;
-      //               break;
-      //            }
-      //         case '*':
-      //            {
-      //               // Store the remaining text in case this is a comment
-      //               tokenList[sp] = text.Substring(i + 1).Replace("|", "");
-
-      //               // Lookahead to see if we have a *= pair
-      //               if (text[i + 1] == '=')
-      //               {
-      //                  i++;
-      //                  symbolList[sp++] = Symbol.assmultiply;
-      //               }
-      //               else
-      //               {
-      //                  symbolList[sp++] = Symbol.multiply;
-      //               }
-      //               break;
-      //            }
-      //         case '/':
-      //            {
-      //               // Lookahead to see if we have a /= pair
-      //               if (text[i + 1] == '=')
-      //               {
-      //                  i++;
-      //                  symbolList[sp++] = Symbol.assdivide;
-      //               }
-      //               else
-      //               {
-      //                  symbolList[sp++] = Symbol.divide;
-      //               }
-      //               break;
-      //            }
-      //         case '+':
-      //            {
-      //               // Lookahead to see if we have a += pair
-      //               if (text[i + 1] == '=')
-      //               {
-      //                  i++;
-      //                  symbolList[sp++] = Symbol.assplus;
-      //               }
-      //               else
-      //               {
-      //                  symbolList[sp++] = Symbol.plus;
-      //               }
-      //               break;
-      //            }
-      //         case '-':
-      //            {
-      //               // Lookahead to see if we have a -= pair
-      //               if (text[i + 1] == '=')
-      //               {
-      //                  i++;
-      //                  symbolList[sp++] = Symbol.assminus;
-      //               }
-      //               else
-      //               {
-      //                  symbolList[sp++] = Symbol.minus;
-      //               }
-      //               break;
-      //            }
-      //         case '(':
-      //            {
-      //               symbolList[sp++] = Symbol.openround;
-      //               break;
-      //            }
-      //         case ')':
-      //            {
-      //               symbolList[sp++] = Symbol.closeround;
-      //               break;
-      //            }
-      //         case '[':
-      //            {
-      //               symbolList[sp++] = Symbol.opensquare;
-      //               break;
-      //            }
-      //         case ']':
-      //            {
-      //               symbolList[sp++] = Symbol.closesquare;
-      //               break;
-      //            }
-      //         case '@':
-      //            {
-      //               symbolList[sp++] = Symbol.AT;
-      //               break;
-      //            }
-      //         case ':':
-      //            {
-      //               // Lookahead to see if we have a := pair
-      //               if (text[i + 1] == '=')
-      //               {
-      //                  i++;
-      //                  symbolList[sp++] = Symbol.assconcat;
-      //               }
-      //               else
-      //               {
-      //                  symbolList[sp++] = Symbol.colon;
-      //               }
-      //               break;
-      //            }
-      //         case ';':
-      //            {
-      //               symbolList[sp++] = Symbol.semicolon;
-      //               break;
-      //            }
-      //         case ',':
-      //            {
-      //               symbolList[sp++] = Symbol.comma;
-      //               break;
-      //            }
-      //         case '&':
-      //            {
-      //               symbolList[sp++] = Symbol.and;
-      //               break;
-      //            }
-      //         case '!':
-      //            {
-      //               // Store the remaining text in case this is a comment
-      //               tokenList[sp] = text.Substring(i + 1).Replace("|", "");
-      //               symbolList[sp++] = Symbol.pling;
-      //               break;
-      //            }
-      //         case '\\':
-      //            {
-      //               symbolList[sp++] = Symbol.backslash;
-      //               break;
-      //            }
-      //         case ' ': break; //Inter token whitespace (Space) to be ignored
-      //         case '\t': break; //Inter token whitespace (TAB) to be ignored
-      //         case (char)65533: break; //Inter token whitespace (VM in Unicode) to be ignored
-      //         case '|': break; //End of line
-      //         default:
-      //            {
-      //               throw new ApplicationException("Token " + letter + " is not recognised");
-      //            }
-      //      }
-      //      i++;
-      //   }
-      //}
-      //=======================================================================
       void TraceIn(string text)
       {
          callLevel++;
@@ -4610,7 +4259,6 @@ namespace Compiler
          //Console.WriteLine("<" + spaces + text + " " + success.ToString());
       }
    }
-
 }
 
 
