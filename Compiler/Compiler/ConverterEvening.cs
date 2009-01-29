@@ -8,22 +8,7 @@ using System.Text.RegularExpressions;
 
 namespace Compiler
 {
-   /*
-    * Deduce Type from usage?    
-    */
-   enum VarUsage
-   {
-      Unknown,
-      Hide,
-      Assigned,
-      Subroutine,
-      AssignedNumeric,
-      AssignedText,
-      AssignedDynArray,
-      Numeric,
-      Text,
-      DynArray
-   }
+
    class ConverterEvening
    {
       Stack<string> expressionStack = new Stack<string>();
